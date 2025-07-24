@@ -7,8 +7,7 @@ import {
 import {MemorySessionStorage} from "@shopify/shopify-app-session-storage-memory"
 import {SQLiteSessionStorage} from "@shopify/shopify-app-session-storage-sqlite"
 import webhooks from "./webhooks"
-import * as process from "node:process";
-
+import jwt from "jsonwebtoken";
 const cache = `${process.cwd()}/database.sqlite`;
 
 const shopify = shopifyApp({
@@ -28,10 +27,15 @@ const shopify = shopifyApp({
     afterAuth: async ({session}) => {
       await shopify.registerWebhooks({session: session});
       try {
+        const token = jwt.sign({
+          shop: session.shop,
+          accessToken: session.accessToken,
+        }, process.env.SHOPIFY_API_SECRET || "", { expiresIn: "1m" });
         await fetch(`${process.env.API_URL}/shop`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
+            "Authorization": `Bearer ${token}`,
           },
           body: JSON.stringify({
             ...session
