@@ -11,3 +11,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 
   return { showForm: Boolean(login) };
 };
+
+export default function Index() {
+  return null
+}

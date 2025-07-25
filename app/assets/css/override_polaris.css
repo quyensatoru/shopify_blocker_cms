@@ -1,0 +1,10 @@
+.Polaris-Card__Stretch {
+  align-items: stretch;
+}
+.Polaris-Card__Stretch .Polaris-Layout__Section.Polaris-Layout__Section--oneHalf >  div {
+  height: 100%;
+}
+.Shopify-Icon__Large > .Polaris-Icon{
+  width: 60px;
+  height: 60px;
+}

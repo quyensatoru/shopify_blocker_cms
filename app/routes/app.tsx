@@ -3,28 +3,41 @@ import { Link, Outlet, useLoaderData, useRouteError } from "@remix-run/react";
 import { boundary } from "@shopify/shopify-app-remix/server";
 import { AppProvider } from "@shopify/shopify-app-remix/react";
 import { NavMenu } from "@shopify/app-bridge-react";
-import polarisStyles from "@shopify/polaris/build/esm/styles.css?url";
-
 import { authenticate } from "../shopify.server";
-
-export const links = () => [{ rel: "stylesheet", href: polarisStyles }];
+import { useDispatch } from 'react-redux';
+import { AppDispatch } from '../redux';
+import { useEffect } from 'react';
+import { setShop } from '../redux/reducers/shop.reducer';
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
-  await authenticate.admin(request);
-
-  return { apiKey: process.env.SHOPIFY_API_KEY || "" };
+  const auth = await authenticate.admin(request);
+  const response = await auth.admin.graphql(
+    `#graphql
+    query getShop{
+      shop {
+        name
+      }
+    }
+    `
+  )
+  const resJson = await response.json();
+  const shop = resJson.data?.shop
+  return { apiKey: process.env.SHOPIFY_API_KEY || "", shop: shop, ...auth };
 };
 
 export default function App() {
-  const { apiKey } = useLoaderData<typeof loader>();
+  const auth = useLoaderData<typeof loader>();
+  const dispatch = useDispatch<AppDispatch>();
+
+  useEffect(() => {
+    dispatch(setShop(auth.shop));
+  }, [auth])
 
   return (
-    <AppProvider isEmbeddedApp apiKey={apiKey}>
+    <AppProvider isEmbeddedApp apiKey={auth.apiKey} >
       <NavMenu>
-        <Link to="/app/dashboard" rel="home">
-          Home
-        </Link>
-        <Link to="/app/additional">Additional page</Link>
+        <Link to="/app" rel="home">Home</Link>
+        <Link to="/app/block-ip">Block IP Rules</Link>
       </NavMenu>
       <Outlet />
     </AppProvider>
