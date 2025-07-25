@@ -1,57 +1,56 @@
-import "@shopify/shopify-app-remix/adapters/node";
-import {
-  ApiVersion,
-  AppDistribution,
-  shopifyApp,
-} from "@shopify/shopify-app-remix/server";
-import {MemorySessionStorage} from "@shopify/shopify-app-session-storage-memory"
-import {SQLiteSessionStorage} from "@shopify/shopify-app-session-storage-sqlite"
-import webhooks from "./webhooks"
-import jwt from "jsonwebtoken";
+import '@shopify/shopify-app-remix/adapters/node';
+import { ApiVersion, AppDistribution, shopifyApp } from '@shopify/shopify-app-remix/server';
+import { MemorySessionStorage } from '@shopify/shopify-app-session-storage-memory';
+import { SQLiteSessionStorage } from '@shopify/shopify-app-session-storage-sqlite';
+import webhooks from './webhooks';
+import jwt from 'jsonwebtoken';
 const cache = `${process.cwd()}/database.sqlite`;
 
 const shopify = shopifyApp({
-  apiKey: process.env.SHOPIFY_API_KEY,
-  apiSecretKey: process.env.SHOPIFY_API_SECRET || "",
-  apiVersion: ApiVersion.January25,
-  scopes: process.env.SCOPES?.split(","),
-  appUrl: process.env.SHOPIFY_APP_URL || "",
-  authPathPrefix: "/auth",
-  sessionStorage: process.env.NODE_ENV === "development" ? new MemorySessionStorage() : new SQLiteSessionStorage(cache) ,
-  distribution: AppDistribution.AppStore,
-  future: {
-    unstable_newEmbeddedAuthStrategy: true,
-    removeRest: true,
-  },
-  hooks: {
-    afterAuth: async ({session}) => {
-      await shopify.registerWebhooks({session: session});
-      try {
-        const token = jwt.sign({
-          shop: session.shop,
-          accessToken: session.accessToken,
-        }, process.env.SHOPIFY_API_SECRET || "", { expiresIn: "1m" });
-        await fetch(`${process.env.API_URL}/shop`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${token}`,
-          },
-          body: JSON.stringify({
-            ...session
-          })
-        })
-      } catch (e) {
-        console.log(e);
-      }
-    }
-  },
-  webhooks: {
-    ...webhooks,
-  },
-  ...(process.env.SHOP_CUSTOM_DOMAIN
-    ? { customShopDomains: [process.env.SHOP_CUSTOM_DOMAIN] }
-    : {}),
+    apiKey: process.env.SHOPIFY_API_KEY,
+    apiSecretKey: process.env.SHOPIFY_API_SECRET || '',
+    apiVersion: ApiVersion.January25,
+    scopes: process.env.SCOPES?.split(','),
+    appUrl: process.env.SHOPIFY_APP_URL || '',
+    authPathPrefix: '/auth',
+    sessionStorage:
+        process.env.NODE_ENV === 'development' ? new MemorySessionStorage() : new SQLiteSessionStorage(cache),
+    distribution: AppDistribution.AppStore,
+    future: {
+        unstable_newEmbeddedAuthStrategy: true,
+        removeRest: true,
+    },
+    hooks: {
+        afterAuth: async ({ session }) => {
+            await shopify.registerWebhooks({ session: session });
+            try {
+                const token = jwt.sign(
+                    {
+                        shop: session.shop,
+                        accessToken: session.accessToken,
+                    },
+                    process.env.SHOPIFY_API_SECRET || '',
+                    { expiresIn: '1m' }
+                );
+                await fetch(`${process.env.API_URL}/shop`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        Authorization: `Bearer ${token}`,
+                    },
+                    body: JSON.stringify({
+                        ...session,
+                    }),
+                });
+            } catch (e) {
+                console.log(e);
+            }
+        },
+    },
+    webhooks: {
+        ...webhooks,
+    },
+    ...(process.env.SHOP_CUSTOM_DOMAIN ? { customShopDomains: [process.env.SHOP_CUSTOM_DOMAIN] } : {}),
 });
 
 export default shopify;
